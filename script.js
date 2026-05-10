@@ -1,4 +1,3 @@
-console.log("✅ script.js 成功加载！正在运行...");
 body {
   margin: 0;
   background: #000;
