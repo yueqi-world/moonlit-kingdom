@@ -1,36 +1,52 @@
-function createKingdom() {
-  const name = document.getElementById("kingdomName").value.trim();
-  const identity = document.getElementById("identity").value;
-
-  if (!name) {
-    alert("请先为你的王国命名。");
-    return;
-  }
-
-  const kingdomData = {
-    name: name,
-    identity: identity,
-    day: 1
-  };
-
-  localStorage.setItem("moonlitKingdom", JSON.stringify(kingdomData));
-  showKingdom(kingdomData);
+body {
+  margin: 0;
+  background: #000;
+  color: #ccc;
+  font-family: "Courier New", monospace;
+  font-size: 15px;
+  line-height: 1.7;
 }
 
-function showKingdom(data) {
-  document.getElementById("setup").classList.add("hidden");
-  document.getElementById("kingdom").classList.remove("hidden");
-
-  document.getElementById("displayName").textContent = data.name + "王国";
-  document.getElementById("displayIdentity").textContent = data.identity;
-  document.getElementById("day").textContent = data.day;
+.screen {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 18px;
 }
 
-window.onload = function () {
-  const saved = localStorage.getItem("moonlitKingdom");
+h1, h2 {
+  font-size: 20px;
+  font-weight: normal;
+  color: #eee;
+}
 
-  if (saved) {
-    const data = JSON.parse(saved);
-    showKingdom(data);
-  }
-};
+.subtitle {
+  color: #999;
+}
+
+input, select, button {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 8px 0 14px;
+  padding: 10px;
+  background: #000;
+  color: #ccc;
+  border: 1px solid #555;
+  font-family: "Courier New", monospace;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: #7aa2ff;
+  text-decoration: underline;
+}
+
+a:visited {
+  color: #b58cff;
+}
+
+.hidden {
+  display: none;
+}
