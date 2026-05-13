@@ -43,13 +43,46 @@ function updateKingdomByOfflineTime(data) {
 
   if (hoursAway <= 0) {
     data.report = "王国仍保持安静。宫廷书记官暂未送来新的报告。";
-    data.lastLogin = now;
-    return {
-      data: data,
-      hoursAway: 0,
-      changes: null
-    };
+    const summaryParts = [];
+
+summaryParts.push(`你离开了 ${hoursAway} 小时。`);
+summaryParts.push(`粮仓减少了 ${foodLoss} 单位。`);
+
+if (moraleChange < 0) {
+  summaryParts.push("民心轻微下降。");
+}
+
+if (populationChange > 0) {
+  summaryParts.push("人口略有增加。");
+}
+
+if (populationChange < 0) {
+  summaryParts.push("人口略有流失。");
+}
+
+if (!data.logs) {
+  data.logs = [];
+}
+
+data.logs.unshift({
+  day: data.day,
+  summary: summaryParts.join(" "),
+  report: data.report
+});
+
+data.logs = data.logs.slice(0, 10);
+
+data.lastLogin = now;
+
+return {
+  data: data,
+  hoursAway: hoursAway,
+  changes: {
+    foodLoss: foodLoss,
+    moraleChange: moraleChange,
+    populationChange: populationChange
   }
+};
 
   const foodLoss = Math.max(1, Math.floor(hoursAway * (data.population / 1000) * 4));
   data.food = Math.max(0, data.food - foodLoss);
@@ -137,10 +170,10 @@ function showKingdom(data, updateResult) {
     <p>王国报告：</p>
     <p>${data.report}</p>
 
-    <p><a href="#">王宫事务</a></p>
-    <p><a href="#">粮仓</a></p>
-    <p><a href="#">边境</a></p>
-    <p><a href="#">王国日志</a></p>
+<p><a href="#" onclick="showUnavailable('王宫事务')">王宫事务</a></p>
+<p><a href="#" onclick="showUnavailable('粮仓')">粮仓</a></p>
+<p><a href="#" onclick="showUnavailable('边境')">边境</a></p>
+<p><a href="#" onclick="showLog()">王国日志</a></p>
   `;
 }
 
@@ -182,4 +215,51 @@ window.onload = function () {
     localStorage.setItem("moonlitKingdom", JSON.stringify(updateResult.data));
     showKingdom(updateResult.data, updateResult);
   }
-};
+};function showUnavailable(placeName) {
+  const kingdomSection = document.getElementById("kingdom");
+
+  kingdomSection.innerHTML = `
+    <p>━━━━━━━━━━━━</p>
+    <h2>${placeName}</h2>
+    <p>━━━━━━━━━━━━</p>
+
+    <p>此处尚未开放。</p>
+    <p>宫廷书记官仍在整理相关文书。</p>
+
+    <p><a href="#" onclick="returnToKingdom()">返回王国</a></p>
+  `;
+}
+
+function showLog() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+  const logs = data.logs || [];
+
+  const logText = logs.length
+    ? logs.map(item => `
+        <p>第 ${item.day} 日</p>
+        <p>${item.summary}</p>
+        <p>王国报告：</p>
+        <p>${item.report}</p>
+        <p>────────────</p>
+      `).join("")
+    : "<p>王国日志尚未留下记录。</p>";
+
+  const kingdomSection = document.getElementById("kingdom");
+
+  kingdomSection.innerHTML = `
+    <p>━━━━━━━━━━━━</p>
+    <h2>王国日志</h2>
+    <p>━━━━━━━━━━━━</p>
+
+    ${logText}
+
+    <p><a href="#" onclick="returnToKingdom()">返回王国</a></p>
+  `;
+}
+
+function returnToKingdom() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+  showKingdom(data, null);
+}
