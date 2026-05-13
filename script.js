@@ -170,10 +170,10 @@ function showKingdom(data, updateResult) {
     <p>王国报告：</p>
     <p>${data.report}</p>
 
-<p><a href="#" onclick="showUnavailable('王宫事务')">王宫事务</a></p>
-<p><a href="#" onclick="showUnavailable('粮仓')">粮仓</a></p>
-<p><a href="#" onclick="showUnavailable('边境')">边境</a></p>
-<p><a href="#" onclick="showLog()">王国日志</a></p>
+<p><a href="javascript:void(0)" onclick="showUnavailable('王宫事务')">王宫事务</a></p>
+<p><a href="javascript:void(0)" onclick="showUnavailable('粮仓')">粮仓</a></p>
+<p><a href="javascript:void(0)" onclick="showUnavailable('边境')">边境</a></p>
+<p><a href="javascript:void(0)" onclick="showLog()">王国日志</a></p>
   `;
 }
 
