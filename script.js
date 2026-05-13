@@ -6,9 +6,12 @@ function repairKingdomData(data) {
   if (typeof data.morale !== "number") data.morale = 70;
   if (typeof data.lastLogin !== "number") data.lastLogin = Date.now();
   if (!data.report) data.report = "王国初建，宫廷书记官已开始记录第一日的政务。";
+  if (!Array.isArray(data.logs)) data.logs = [];
 
   return data;
-}function createKingdom() {
+}
+
+function createKingdom() {
   const name = document.getElementById("kingdomName").value.trim();
   const identity = document.getElementById("identity").value;
 
@@ -29,7 +32,8 @@ function repairKingdomData(data) {
     soldiers: 80,
     morale: 70,
     lastLogin: now,
-    report: "王国初建，宫廷书记官已开始记录第一日的政务。"
+    report: "王国初建，宫廷书记官已开始记录第一日的政务。",
+    logs: []
   };
 
   localStorage.setItem("moonlitKingdom", JSON.stringify(kingdomData));
@@ -43,46 +47,14 @@ function updateKingdomByOfflineTime(data) {
 
   if (hoursAway <= 0) {
     data.report = "王国仍保持安静。宫廷书记官暂未送来新的报告。";
-    const summaryParts = [];
+    data.lastLogin = now;
 
-summaryParts.push(`你离开了 ${hoursAway} 小时。`);
-summaryParts.push(`粮仓减少了 ${foodLoss} 单位。`);
-
-if (moraleChange < 0) {
-  summaryParts.push("民心轻微下降。");
-}
-
-if (populationChange > 0) {
-  summaryParts.push("人口略有增加。");
-}
-
-if (populationChange < 0) {
-  summaryParts.push("人口略有流失。");
-}
-
-if (!data.logs) {
-  data.logs = [];
-}
-
-data.logs.unshift({
-  day: data.day,
-  summary: summaryParts.join(" "),
-  report: data.report
-});
-
-data.logs = data.logs.slice(0, 10);
-
-data.lastLogin = now;
-
-return {
-  data: data,
-  hoursAway: hoursAway,
-  changes: {
-    foodLoss: foodLoss,
-    moraleChange: moraleChange,
-    populationChange: populationChange
+    return {
+      data: data,
+      hoursAway: 0,
+      changes: null
+    };
   }
-};
 
   const foodLoss = Math.max(1, Math.floor(hoursAway * (data.population / 1000) * 4));
   data.food = Math.max(0, data.food - foodLoss);
@@ -99,11 +71,33 @@ return {
 
   data.morale = Math.max(0, Math.min(100, data.morale + moraleChange));
   data.population = Math.max(100, data.population + populationChange);
-
   data.day = data.day + Math.max(1, Math.floor(hoursAway / 12));
 
   data.report = generateKingdomReport(data);
 
+  const summaryParts = [];
+  summaryParts.push("你离开了 " + hoursAway + " 小时。");
+  summaryParts.push("粮仓减少了 " + foodLoss + " 单位。");
+
+  if (moraleChange < 0) {
+    summaryParts.push("民心轻微下降。");
+  }
+
+  if (populationChange > 0) {
+    summaryParts.push("人口略有增加。");
+  }
+
+  if (populationChange < 0) {
+    summaryParts.push("人口略有流失。");
+  }
+
+  data.logs.unshift({
+    day: data.day,
+    summary: summaryParts.join(" "),
+    report: data.report
+  });
+
+  data.logs = data.logs.slice(0, 10);
   data.lastLogin = now;
 
   return {
@@ -141,22 +135,19 @@ function generateKingdomReport(data) {
 }
 
 function showKingdom(data, updateResult) {
-  document.getElementById("setup").classList.add("hidden");
-  document.getElementById("kingdom").classList.remove("hidden");
-
-  document.getElementById("displayName").textContent = data.name + "王国";
-  document.getElementById("displayIdentity").textContent = data.identity;
-  document.getElementById("day").textContent = data.day;
-
+  const setupSection = document.getElementById("setup");
   const kingdomSection = document.getElementById("kingdom");
+
+  setupSection.classList.add("hidden");
+  kingdomSection.classList.remove("hidden");
 
   kingdomSection.innerHTML = `
     <p>━━━━━━━━━━━━</p>
-    <h2 id="displayName">${data.name}王国</h2>
-    <p>第 <span id="day">${data.day}</span> 日</p>
+    <h2>${data.name}王国</h2>
+    <p>第 ${data.day} 日</p>
     <p>━━━━━━━━━━━━</p>
 
-    <p>统治者：<span id="displayIdentity">${data.identity}</span></p>
+    <p>统治者：${data.identity}</p>
     <p>人口：${data.population}</p>
     <p>粮食：${data.food}</p>
     <p>黄金：${data.gold}</p>
@@ -170,52 +161,40 @@ function showKingdom(data, updateResult) {
     <p>王国报告：</p>
     <p>${data.report}</p>
 
-<p><a href="javascript:void(0)" onclick="showUnavailable('王宫事务')">王宫事务</a></p>
-<p><a href="javascript:void(0)" onclick="showUnavailable('粮仓')">粮仓</a></p>
-<p><a href="javascript:void(0)" onclick="showUnavailable('边境')">边境</a></p>
-<p><a href="javascript:void(0)" onclick="showLog()">王国日志</a></p>
+    <p><a href="javascript:void(0)" onclick="showUnavailable('王宫事务')">王宫事务</a></p>
+    <p><a href="javascript:void(0)" onclick="showUnavailable('粮仓')">粮仓</a></p>
+    <p><a href="javascript:void(0)" onclick="showUnavailable('边境')">边境</a></p>
+    <p><a href="javascript:void(0)" onclick="showLog()">王国日志</a></p>
   `;
 }
 
 function renderOfflineSummary(updateResult) {
   if (!updateResult || updateResult.hoursAway === 0) {
-    return `
-      <p>你刚刚登入王国。</p>
-    `;
+    return "<p>你刚刚登入王国。</p>";
   }
 
   const changes = updateResult.changes;
 
-  let text = `
-    <p>你离开了 ${updateResult.hoursAway} 小时。</p>
-    <p>粮仓减少了 ${changes.foodLoss} 单位。</p>
-  `;
+  let text = "";
+  text += "<p>你离开了 " + updateResult.hoursAway + " 小时。</p>";
+  text += "<p>粮仓减少了 " + changes.foodLoss + " 单位。</p>";
 
   if (changes.moraleChange < 0) {
-    text += `<p>民心轻微下降。</p>`;
+    text += "<p>民心轻微下降。</p>";
   }
 
   if (changes.populationChange > 0) {
-    text += `<p>人口略有增加。</p>`;
+    text += "<p>人口略有增加。</p>";
   }
 
   if (changes.populationChange < 0) {
-    text += `<p>人口略有流失。</p>`;
+    text += "<p>人口略有流失。</p>";
   }
 
   return text;
 }
 
-window.onload = function () {
-  const saved = localStorage.getItem("moonlitKingdom");
-
-  if (saved) {
-   const data = repairKingdomData(JSON.parse(saved));
-    const updateResult = updateKingdomByOfflineTime(data);
-    localStorage.setItem("moonlitKingdom", JSON.stringify(updateResult.data));
-    showKingdom(updateResult.data, updateResult);
-  }
-};function showUnavailable(placeName) {
+function showUnavailable(placeName) {
   const kingdomSection = document.getElementById("kingdom");
 
   kingdomSection.innerHTML = `
@@ -226,7 +205,7 @@ window.onload = function () {
     <p>此处尚未开放。</p>
     <p>宫廷书记官仍在整理相关文书。</p>
 
-    <p><a href="#" onclick="returnToKingdom()">返回王国</a></p>
+    <p><a href="javascript:void(0)" onclick="returnToKingdom()">返回王国</a></p>
   `;
 }
 
@@ -235,15 +214,21 @@ function showLog() {
   const data = repairKingdomData(JSON.parse(saved));
   const logs = data.logs || [];
 
-  const logText = logs.length
-    ? logs.map(item => `
+  let logText = "";
+
+  if (logs.length === 0) {
+    logText = "<p>王国日志尚未留下记录。</p>";
+  } else {
+    logText = logs.map(function(item) {
+      return `
         <p>第 ${item.day} 日</p>
         <p>${item.summary}</p>
         <p>王国报告：</p>
         <p>${item.report}</p>
         <p>────────────</p>
-      `).join("")
-    : "<p>王国日志尚未留下记录。</p>";
+      `;
+    }).join("");
+  }
 
   const kingdomSection = document.getElementById("kingdom");
 
@@ -254,7 +239,7 @@ function showLog() {
 
     ${logText}
 
-    <p><a href="#" onclick="returnToKingdom()">返回王国</a></p>
+    <p><a href="javascript:void(0)" onclick="returnToKingdom()">返回王国</a></p>
   `;
 }
 
@@ -263,3 +248,15 @@ function returnToKingdom() {
   const data = repairKingdomData(JSON.parse(saved));
   showKingdom(data, null);
 }
+
+window.onload = function () {
+  const saved = localStorage.getItem("moonlitKingdom");
+
+  if (saved) {
+    const data = repairKingdomData(JSON.parse(saved));
+    const updateResult = updateKingdomByOfflineTime(data);
+
+    localStorage.setItem("moonlitKingdom", JSON.stringify(updateResult.data));
+    showKingdom(updateResult.data, updateResult);
+  }
+};
