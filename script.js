@@ -1,4 +1,14 @@
-function createKingdom() {
+function repairKingdomData(data) {
+  if (typeof data.population !== "number") data.population = 1000;
+  if (typeof data.food !== "number") data.food = 500;
+  if (typeof data.gold !== "number") data.gold = 200;
+  if (typeof data.soldiers !== "number") data.soldiers = 80;
+  if (typeof data.morale !== "number") data.morale = 70;
+  if (typeof data.lastLogin !== "number") data.lastLogin = Date.now();
+  if (!data.report) data.report = "王国初建，宫廷书记官已开始记录第一日的政务。";
+
+  return data;
+}function createKingdom() {
   const name = document.getElementById("kingdomName").value.trim();
   const identity = document.getElementById("identity").value;
 
@@ -167,7 +177,7 @@ window.onload = function () {
   const saved = localStorage.getItem("moonlitKingdom");
 
   if (saved) {
-    const data = JSON.parse(saved);
+   const data = repairKingdomData(JSON.parse(saved));
     const updateResult = updateKingdomByOfflineTime(data);
     localStorage.setItem("moonlitKingdom", JSON.stringify(updateResult.data));
     showKingdom(updateResult.data, updateResult);
