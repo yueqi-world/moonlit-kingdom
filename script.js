@@ -56,7 +56,20 @@ function updateKingdomByOfflineTime(data) {
     };
   }
 
-  const foodLoss = Math.max(1, Math.floor(hoursAway * (data.population / 1000) * 4));
+  let effectiveHours = hoursAway;
+
+if (hoursAway > 24 * 30) {
+  effectiveHours = 72;
+  data.report = "你已离开王国许久。王国进入低速封存状态，宫廷只维持粮仓、城防与基本民生。王国仍在，只是变得很安静。";
+} else if (hoursAway > 24 * 14) {
+  effectiveHours = 96;
+  data.report = "你已久未临朝。宫廷书记官代为处理了部分日常政务，王都并未陷入混乱，但市井之间开始流传王座久未开启的传闻。";
+} else if (hoursAway > 24 * 7) {
+  effectiveHours = 120;
+  data.report = "在你未临朝期间，宫廷书记官与粮仓官维持了最基本的政务。王国仍在等待你的命令。";
+}
+
+const foodLoss = Math.max(1, Math.floor(effectiveHours * (data.population / 1000) * 4));
   data.food = Math.max(0, data.food - foodLoss);
 
   let moraleChange = 0;
@@ -73,7 +86,9 @@ function updateKingdomByOfflineTime(data) {
   data.population = Math.max(100, data.population + populationChange);
   data.day = data.day + Math.max(1, Math.floor(hoursAway / 12));
 
+  if (hoursAway <= 24 * 7) {
   data.report = generateKingdomReport(data);
+}
 
   const summaryParts = [];
   summaryParts.push("你离开了 " + hoursAway + " 小时。");
