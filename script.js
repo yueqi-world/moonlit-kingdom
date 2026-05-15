@@ -7,6 +7,8 @@ function repairKingdomData(data) {
   if (typeof data.lastLogin !== "number") data.lastLogin = Date.now();
   if (!data.report) data.report = "王国初建，宫廷书记官已开始记录第一日的政务。";
   if (!Array.isArray(data.logs)) data.logs = [];
+  if (typeof data.granaryActionDay !== "number") data.granaryActionDay = data.day || 1;
+if (typeof data.granaryActionsToday !== "number") data.granaryActionsToday = 0;
 
   return data;
 }
@@ -33,7 +35,9 @@ function createKingdom() {
     morale: 70,
     lastLogin: now,
     report: "王国初建，宫廷书记官已开始记录第一日的政务。",
-    logs: []
+    logs: [],
+granaryActionDay: 1,
+granaryActionsToday: 0
   };
 
   localStorage.setItem("moonlitKingdom", JSON.stringify(kingdomData));
@@ -85,6 +89,10 @@ const foodLoss = Math.max(1, Math.floor(effectiveHours * (data.population / 1000
   data.morale = Math.max(0, Math.min(100, data.morale + moraleChange));
   data.population = Math.max(100, data.population + populationChange);
   data.day = data.day + Math.max(1, Math.floor(hoursAway / 12));
+  if (data.granaryActionDay !== data.day) {
+  data.granaryActionDay = data.day;
+  data.granaryActionsToday = 0;
+}
 
   if (hoursAway <= 24 * 7) {
   data.report = generateKingdomReport(data);
@@ -275,7 +283,24 @@ window.onload = function () {
     showKingdom(updateResult.data, updateResult);
   }
 };
-function showGranary() {
+function showGranary()function canHandleGranaryAction(data) {
+  if (data.granaryActionDay !== data.day) {
+    data.granaryActionDay = data.day;
+    data.granaryActionsToday = 0;
+  }
+
+  if (data.granaryActionsToday >= 3) {
+    data.report = "粮仓官合上账册。今日粮仓事务已处理完毕。频繁更改粮仓王令会扰乱市集秩序。";
+    addManualLog(data, "你试图继续处理粮仓事务，但今日粮仓账册已封。");
+
+    localStorage.setItem("moonlitKingdom", JSON.stringify(data));
+    showGranary();
+    return false;
+  }
+
+  data.granaryActionsToday += 1;
+  return true;
+} {
   const saved = localStorage.getItem("moonlitKingdom");
   const data = repairKingdomData(JSON.parse(saved));
   const kingdomSection = document.getElementById("kingdom");
@@ -288,6 +313,7 @@ function showGranary() {
     <p>当前粮食：${data.food}</p>
 <p>民心：${data.morale}</p>
 <p>黄金：${data.gold}</p>
+<p>今日粮仓事务：${data.granaryActionsToday} / 3</p>
 
 <p>粮仓回报：</p>
 <p>${data.report}</p>
@@ -306,6 +332,9 @@ function showGranary() {
 function openReserveFood() {
   const saved = localStorage.getItem("moonlitKingdom");
   const data = repairKingdomData(JSON.parse(saved));
+  if (!canHandleGranaryAction(data)) {
+  return;
+}
 
   if (data.food < 50) {
     data.report = "粮仓储量不足，粮仓官无法开放更多储备粮。";
@@ -324,6 +353,10 @@ function openReserveFood() {
 function increaseFarmLabor() {
   const saved = localStorage.getItem("moonlitKingdom");
   const data = repairKingdomData(JSON.parse(saved));
+  
+  if (!canHandleGranaryAction(data)) {
+  return;
+}
 
   if (data.morale < 10) {
     data.report = "民心已至谷底。村庄拒绝再派出劳力，农田劳力无法继续增加。宫廷书记官建议先安抚民心。";
