@@ -286,10 +286,13 @@ function showGranary() {
     <p>━━━━━━━━━━━━</p>
 
     <p>当前粮食：${data.food}</p>
-    <p>民心：${data.morale}</p>
-    <p>黄金：${data.gold}</p>
+<p>民心：${data.morale}</p>
+<p>黄金：${data.gold}</p>
 
-    <p>可执行事务：</p>
+<p>粮仓回报：</p>
+<p>${data.report}</p>
+
+<p>可执行事务：</p>
 
     <p><a href="javascript:void(0)" onclick="openReserveFood()">开放储备粮</a></p>
     <p>效果：粮食减少 50，民心上升 3。</p>
