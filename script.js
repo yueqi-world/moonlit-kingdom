@@ -177,7 +177,7 @@ function showKingdom(data, updateResult) {
     <p>${data.report}</p>
 
     <p><a href="javascript:void(0)" onclick="showUnavailable('王宫事务')">王宫事务</a></p>
-    <p><a href="javascript:void(0)" onclick="showUnavailable('粮仓')">粮仓</a></p>
+    <p><a href="javascript:void(0)" onclick="showGranary()">粮仓</a></p>
     <p><a href="javascript:void(0)" onclick="showUnavailable('边境')">边境</a></p>
     <p><a href="javascript:void(0)" onclick="showLog()">王国日志</a></p>
   `;
@@ -275,3 +275,72 @@ window.onload = function () {
     showKingdom(updateResult.data, updateResult);
   }
 };
+function showGranary() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+  const kingdomSection = document.getElementById("kingdom");
+
+  kingdomSection.innerHTML = `
+    <p>━━━━━━━━━━━━</p>
+    <h2>粮仓</h2>
+    <p>━━━━━━━━━━━━</p>
+
+    <p>当前粮食：${data.food}</p>
+    <p>民心：${data.morale}</p>
+    <p>黄金：${data.gold}</p>
+
+    <p>可执行事务：</p>
+
+    <p><a href="javascript:void(0)" onclick="openReserveFood()">开放储备粮</a></p>
+    <p>效果：粮食减少 50，民心上升 3。</p>
+
+    <p><a href="javascript:void(0)" onclick="increaseFarmLabor()">增加农田劳力</a></p>
+    <p>效果：粮食增加 80，民心下降 2。</p>
+
+    <p><a href="javascript:void(0)" onclick="returnToKingdom()">返回王国</a></p>
+  `;
+}
+function openReserveFood() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+
+  if (data.food < 50) {
+    data.report = "粮仓储量不足，粮仓官无法开放更多储备粮。";
+  } else {
+    data.food = Math.max(0, data.food - 50);
+    data.morale = Math.min(100, data.morale + 3);
+    data.report = "你下令开放部分储备粮。王都民心稍有回稳，但粮仓储量减少。";
+
+    addManualLog(data, "你下令开放部分储备粮。粮食减少 50，民心上升 3。");
+  }
+
+  localStorage.setItem("moonlitKingdom", JSON.stringify(data));
+  showGranary();
+}
+
+function increaseFarmLabor() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+
+  data.food = data.food + 80;
+  data.morale = Math.max(0, data.morale - 2);
+  data.report = "你下令增加农田劳力。粮仓储量有所回升，但民间略有疲惫。";
+
+  addManualLog(data, "你下令增加农田劳力。粮食增加 80，民心下降 2。");
+
+  localStorage.setItem("moonlitKingdom", JSON.stringify(data));
+  showGranary();
+}
+function addManualLog(data, summary) {
+  if (!Array.isArray(data.logs)) {
+    data.logs = [];
+  }
+
+  data.logs.unshift({
+    day: data.day,
+    summary: summary,
+    report: data.report
+  });
+
+  data.logs = data.logs.slice(0, 10);
+}
