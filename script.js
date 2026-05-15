@@ -283,7 +283,7 @@ window.onload = function () {
     showKingdom(updateResult.data, updateResult);
   }
 };
-function showGranary()function canHandleGranaryAction(data) {
+function canHandleGranaryAction(data) {
   if (data.granaryActionDay !== data.day) {
     data.granaryActionDay = data.day;
     data.granaryActionsToday = 0;
@@ -300,7 +300,9 @@ function showGranary()function canHandleGranaryAction(data) {
 
   data.granaryActionsToday += 1;
   return true;
-} {
+}
+
+function showGranary() {
   const saved = localStorage.getItem("moonlitKingdom");
   const data = repairKingdomData(JSON.parse(saved));
   const kingdomSection = document.getElementById("kingdom");
