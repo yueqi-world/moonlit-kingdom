@@ -322,9 +322,30 @@ function increaseFarmLabor() {
   const saved = localStorage.getItem("moonlitKingdom");
   const data = repairKingdomData(JSON.parse(saved));
 
+  if (data.morale < 10) {
+    data.report = "民心已至谷底。村庄拒绝再派出劳力，农田劳力无法继续增加。宫廷书记官建议先安抚民心。";
+
+    addManualLog(data, "你试图继续增加农田劳力，但民心过低，村庄拒绝执行。");
+
+    localStorage.setItem("moonlitKingdom", JSON.stringify(data));
+    showGranary();
+    return;
+  }
+
   data.food = data.food + 80;
   data.morale = Math.max(0, data.morale - 2);
-  data.report = "你下令增加农田劳力。粮仓储量有所回升，但民间略有疲惫。";
+
+  if (data.morale === 0) {
+    data.report = "民心已近崩溃。粮仓充实，王都却不再欢呼。街市安静得异常。";
+  } else if (data.morale < 10) {
+    data.report = "民心已极低。部分村庄开始抗拒新的劳力征调，王令传达到各村时变得迟缓。";
+  } else if (data.morale < 30) {
+    data.report = "王都街市出现低声议论。连续征调劳力已引起民间不安。";
+  } else if (data.morale < 50) {
+    data.report = "民间略有疲惫。粮仓储量有所回升，但王都的议论声变多了。";
+  } else {
+    data.report = "你下令增加农田劳力。粮仓储量有所回升，但民间略有疲惫。";
+  }
 
   addManualLog(data, "你下令增加农田劳力。粮食增加 80，民心下降 2。");
 
