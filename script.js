@@ -102,7 +102,6 @@ if (data.tradeFoodDay !== data.day) {
   data.tradeFoodDay = data.day;
   data.tradeFoodUsedToday = false;
 }
-}
 
   if (hoursAway <= 24 * 7) {
   data.report = generateKingdomReport(data);
