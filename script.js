@@ -1,4 +1,9 @@
 function repairKingdomData(data) {
+  if (!data || typeof data !== "object") data = {};
+
+  if (typeof data.name !== "string") data.name = "月光";
+  if (typeof data.identity !== "string") data.identity = "女王";
+  if (typeof data.day !== "number") data.day = 1;
   if (typeof data.population !== "number") data.population = 1000;
   if (typeof data.food !== "number") data.food = 500;
   if (typeof data.gold !== "number") data.gold = 200;
@@ -7,10 +12,12 @@ function repairKingdomData(data) {
   if (typeof data.lastLogin !== "number") data.lastLogin = Date.now();
   if (!data.report) data.report = "王国初建，宫廷书记官已开始记录第一日的政务。";
   if (!Array.isArray(data.logs)) data.logs = [];
-  if (typeof data.granaryActionDay !== "number") data.granaryActionDay = data.day || 1;
-if (typeof data.granaryActionsToday !== "number") data.granaryActionsToday = 0;
-  if (typeof data.tradeFoodDay !== "number") data.tradeFoodDay = data.day || 1;
-if (typeof data.tradeFoodUsedToday !== "boolean") data.tradeFoodUsedToday = false;
+
+  if (typeof data.granaryActionDay !== "number") data.granaryActionDay = data.day;
+  if (typeof data.granaryActionsToday !== "number") data.granaryActionsToday = 0;
+
+  if (typeof data.tradeFoodDay !== "number") data.tradeFoodDay = data.day;
+  if (typeof data.tradeFoodUsedToday !== "boolean") data.tradeFoodUsedToday = false;
 
   return data;
 }
@@ -38,10 +45,10 @@ function createKingdom() {
     lastLogin: now,
     report: "王国初建，宫廷书记官已开始记录第一日的政务。",
     logs: [],
-granaryActionDay: 1,
-granaryActionsToday: 0,
-tradeFoodDay: 1,
-tradeFoodUsedToday: false
+    granaryActionDay: 1,
+    granaryActionsToday: 0,
+    tradeFoodDay: 1,
+    tradeFoodUsedToday: false
   };
 
   localStorage.setItem("moonlitKingdom", JSON.stringify(kingdomData));
@@ -66,18 +73,18 @@ function updateKingdomByOfflineTime(data) {
 
   let effectiveHours = hoursAway;
 
-if (hoursAway > 24 * 30) {
-  effectiveHours = 72;
-  data.report = "你已离开王国许久。王国进入低速封存状态，宫廷只维持粮仓、城防与基本民生。王国仍在，只是变得很安静。";
-} else if (hoursAway > 24 * 14) {
-  effectiveHours = 96;
-  data.report = "你已久未临朝。宫廷书记官代为处理了部分日常政务，王都并未陷入混乱，但市井之间开始流传王座久未开启的传闻。";
-} else if (hoursAway > 24 * 7) {
-  effectiveHours = 120;
-  data.report = "在你未临朝期间，宫廷书记官与粮仓官维持了最基本的政务。王国仍在等待你的命令。";
-}
+  if (hoursAway > 24 * 30) {
+    effectiveHours = 72;
+    data.report = "你已离开王国许久。王国进入低速封存状态，宫廷只维持粮仓、城防与基本民生。王国仍在，只是变得很安静。";
+  } else if (hoursAway > 24 * 14) {
+    effectiveHours = 96;
+    data.report = "你已久未临朝。宫廷书记官代为处理了部分日常政务，王都并未陷入混乱，但市井之间开始流传王座久未开启的传闻。";
+  } else if (hoursAway > 24 * 7) {
+    effectiveHours = 120;
+    data.report = "在你未临朝期间，宫廷书记官与粮仓官维持了最基本的政务。王国仍在等待你的命令。";
+  }
 
-const foodLoss = Math.max(1, Math.floor(effectiveHours * (data.population / 1000) * 4));
+  const foodLoss = Math.max(1, Math.floor(effectiveHours * (data.population / 1000) * 4));
   data.food = Math.max(0, data.food - foodLoss);
 
   let moraleChange = 0;
@@ -92,20 +99,22 @@ const foodLoss = Math.max(1, Math.floor(effectiveHours * (data.population / 1000
 
   data.morale = Math.max(0, Math.min(100, data.morale + moraleChange));
   data.population = Math.max(100, data.population + populationChange);
-  data.day = data.day + Math.max(1, Math.floor(hoursAway / 12));
-if (data.granaryActionDay !== data.day) {
-  data.granaryActionDay = data.day;
-  data.granaryActionsToday = 0;
-}
 
-if (data.tradeFoodDay !== data.day) {
-  data.tradeFoodDay = data.day;
-  data.tradeFoodUsedToday = false;
-}
+  data.day = data.day + Math.max(1, Math.floor(hoursAway / 12));
+
+  if (data.granaryActionDay !== data.day) {
+    data.granaryActionDay = data.day;
+    data.granaryActionsToday = 0;
+  }
+
+  if (data.tradeFoodDay !== data.day) {
+    data.tradeFoodDay = data.day;
+    data.tradeFoodUsedToday = false;
+  }
 
   if (hoursAway <= 24 * 7) {
-  data.report = generateKingdomReport(data);
-}
+    data.report = generateKingdomReport(data);
+  }
 
   const summaryParts = [];
   summaryParts.push("你离开了 " + hoursAway + " 小时。");
@@ -123,13 +132,8 @@ if (data.tradeFoodDay !== data.day) {
     summaryParts.push("人口略有流失。");
   }
 
-  data.logs.unshift({
-    day: data.day,
-    summary: summaryParts.join(" "),
-    report: data.report
-  });
+  addManualLog(data, summaryParts.join(" "));
 
-  data.logs = data.logs.slice(0, 10);
   data.lastLogin = now;
 
   return {
@@ -281,17 +285,39 @@ function returnToKingdom() {
   showKingdom(data, null);
 }
 
-window.onload = function () {
+function showGranary() {
   const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+  const kingdomSection = document.getElementById("kingdom");
 
-  if (saved) {
-    const data = repairKingdomData(JSON.parse(saved));
-    const updateResult = updateKingdomByOfflineTime(data);
+  kingdomSection.innerHTML = `
+    <p>━━━━━━━━━━━━</p>
+    <h2>粮仓</h2>
+    <p>━━━━━━━━━━━━</p>
 
-    localStorage.setItem("moonlitKingdom", JSON.stringify(updateResult.data));
-    showKingdom(updateResult.data, updateResult);
-  }
-};
+    <p>当前粮食：${data.food}</p>
+    <p>民心：${data.morale}</p>
+    <p>黄金：${data.gold}</p>
+    <p>今日粮仓事务：${data.granaryActionsToday} / 3</p>
+
+    <p>粮仓回报：</p>
+    <p>${data.report}</p>
+
+    <p>可执行事务：</p>
+
+    <p><a href="javascript:void(0)" onclick="openReserveFood()">开放储备粮</a></p>
+    <p>效果：粮食减少 50，民心上升 3。</p>
+
+    <p><a href="javascript:void(0)" onclick="increaseFarmLabor()">增加农田劳力</a></p>
+    <p>效果：粮食增加 80，民心下降 2。</p>
+
+    <p><a href="javascript:void(0)" onclick="buyFoodFromCaravan()">向商队购粮</a></p>
+    <p>效果：黄金减少 40，粮食增加 120。每日限一次。</p>
+
+    <p><a href="javascript:void(0)" onclick="returnToKingdom()">返回王国</a></p>
+  `;
+}
+
 function canHandleGranaryAction(data) {
   if (data.granaryActionDay !== data.day) {
     data.granaryActionDay = data.day;
@@ -311,47 +337,17 @@ function canHandleGranaryAction(data) {
   return true;
 }
 
-function showGranary() {
-  const saved = localStorage.getItem("moonlitKingdom");
-  const data = repairKingdomData(JSON.parse(saved));
-  const kingdomSection = document.getElementById("kingdom");
-
-  kingdomSection.innerHTML = `
-    <p>━━━━━━━━━━━━</p>
-    <h2>粮仓</h2>
-    <p>━━━━━━━━━━━━</p>
-
-    <p>当前粮食：${data.food}</p>
-<p>民心：${data.morale}</p>
-<p>黄金：${data.gold}</p>
-<p>今日粮仓事务：${data.granaryActionsToday} / 3</p>
-
-<p>粮仓回报：</p>
-<p>${data.report}</p>
-
-<p>可执行事务：</p>
-
-    <p><a href="javascript:void(0)" onclick="openReserveFood()">开放储备粮</a></p>
-    <p>效果：粮食减少 50，民心上升 3。</p>
-
-<p><a href="javascript:void(0)" onclick="increaseFarmLabor()">增加农田劳力</a></p>
-<p>效果：粮食增加 80，民心下降 2。</p>
-
-<p><a href="javascript:void(0)" onclick="buyFoodFromCaravan()">向商队购粮</a></p>
-<p>效果：黄金减少 40，粮食增加 120。每日限一次。</p>
-
-<p><a href="javascript:void(0)" onclick="returnToKingdom()">返回王国</a></p>
-  `;
-}
 function openReserveFood() {
   const saved = localStorage.getItem("moonlitKingdom");
   const data = repairKingdomData(JSON.parse(saved));
+
   if (!canHandleGranaryAction(data)) {
-  return;
-}
+    return;
+  }
 
   if (data.food < 50) {
     data.report = "粮仓储量不足，粮仓官无法开放更多储备粮。";
+    addManualLog(data, "你试图开放储备粮，但粮仓储量不足。");
   } else {
     data.food = Math.max(0, data.food - 50);
     data.morale = Math.min(100, data.morale + 3);
@@ -455,3 +451,15 @@ function addManualLog(data, summary) {
 
   data.logs = data.logs.slice(0, 10);
 }
+
+window.onload = function () {
+  const saved = localStorage.getItem("moonlitKingdom");
+
+  if (saved) {
+    const data = repairKingdomData(JSON.parse(saved));
+    const updateResult = updateKingdomByOfflineTime(data);
+
+    localStorage.setItem("moonlitKingdom", JSON.stringify(updateResult.data));
+    showKingdom(updateResult.data, updateResult);
+  }
+};
