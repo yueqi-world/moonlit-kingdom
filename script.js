@@ -54,38 +54,6 @@ function createKingdom() {
   localStorage.setItem("moonlitKingdom", JSON.stringify(kingdomData));
   showKingdom(kingdomData, null);
 }
-}
-  const name = document.getElementById("kingdomName").value.trim();
-  const identity = document.getElementById("identity").value;
-
-  if (!name) {
-    alert("请先为你的王国命名。");
-    return;
-  }
-
-  const now = Date.now();
-
-  const kingdomData = {
-    name: name,
-    identity: identity,
-    day: 1,
-    population: 1000,
-    food: 500,
-    gold: 200,
-    soldiers: 80,
-    morale: 70,
-    lastLogin: now,
-    report: "王国初建，宫廷书记官已开始记录第一日的政务。",
-    logs: [],
-    granaryActionDay: 1,
-    granaryActionsToday: 0,
-    tradeFoodDay: 1,
-    tradeFoodUsedToday: false
-  };
-
-  localStorage.setItem("moonlitKingdom", JSON.stringify(kingdomData));
-  showKingdom(kingdomData, null);
-}
 
 function updateKingdomByOfflineTime(data) {
   const now = Date.now();
