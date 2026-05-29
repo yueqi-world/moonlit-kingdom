@@ -31,66 +31,29 @@ function createKingdom() {
     return;
   }
 
-  const setupSection = document.getElementById("setup");
-  const kingdomSection = document.getElementById("kingdom");
+  const now = Date.now();
 
-  setupSection.classList.add("hidden");
-  kingdomSection.classList.remove("hidden");
+  const kingdomData = {
+    name: name,
+    identity: identity,
+    day: 1,
+    population: 1000,
+    food: 500,
+    gold: 200,
+    soldiers: 80,
+    morale: 70,
+    lastLogin: now,
+    report: "王国初建，宫廷书记官已开始记录第一日的政务。",
+    logs: [],
+    granaryActionDay: 1,
+    granaryActionsToday: 0,
+    tradeFoodDay: 1,
+    tradeFoodUsedToday: false
+  };
 
-  kingdomSection.innerHTML = `
-    <p>━━━━━━━━━━━━</p>
-    <h2>正在建立王国<span id="loadingDots">…</span></h2>
-    <p>━━━━━━━━━━━━</p>
-
-    <p>[ 王国名登记中 ]</p>
-    <p>[ 粮仓账册启封中 ]</p>
-    <p>[ 宫廷书记官就位中 ]</p>
-  `;
-
-  let dotCount = 1;
-  const loadingTimer = setInterval(function () {
-    const dots = document.getElementById("loadingDots");
-
-    if (!dots) {
-      clearInterval(loadingTimer);
-      return;
-    }
-
-    dotCount = dotCount + 1;
-
-    if (dotCount > 3) {
-      dotCount = 1;
-    }
-
-    dots.textContent = "…".repeat(dotCount);
-  }, 350);
-
-  setTimeout(function () {
-    clearInterval(loadingTimer);
-
-    const now = Date.now();
-
-    const kingdomData = {
-      name: name,
-      identity: identity,
-      day: 1,
-      population: 1000,
-      food: 500,
-      gold: 200,
-      soldiers: 80,
-      morale: 70,
-      lastLogin: now,
-      report: "王国初建，宫廷书记官已开始记录第一日的政务。",
-      logs: [],
-      granaryActionDay: 1,
-      granaryActionsToday: 0,
-      tradeFoodDay: 1,
-      tradeFoodUsedToday: false
-    };
-
-    localStorage.setItem("moonlitKingdom", JSON.stringify(kingdomData));
-    showKingdom(kingdomData, null);
-  }, 1500);
+  localStorage.setItem("moonlitKingdom", JSON.stringify(kingdomData));
+  showKingdom(kingdomData, null);
+}
 }
   const name = document.getElementById("kingdomName").value.trim();
   const identity = document.getElementById("identity").value;
