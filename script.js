@@ -9,6 +9,7 @@ function repairKingdomData(data) {
   if (typeof data.gold !== "number") data.gold = 200;
   if (typeof data.soldiers !== "number") data.soldiers = 80;
   if (typeof data.morale !== "number") data.morale = 70;
+  if (typeof data.borderStability !== "number") data.borderStability = 60;
   if (typeof data.lastLogin !== "number") data.lastLogin = Date.now();
   if (!data.report) data.report = "王国初建，宫廷书记官已开始记录第一日的政务。";
   if (!Array.isArray(data.logs)) data.logs = [];
@@ -18,6 +19,9 @@ function repairKingdomData(data) {
 
   if (typeof data.tradeFoodDay !== "number") data.tradeFoodDay = data.day;
   if (typeof data.tradeFoodUsedToday !== "boolean") data.tradeFoodUsedToday = false;
+
+  if (typeof data.borderActionDay !== "number") data.borderActionDay = data.day;
+  if (typeof data.borderActionsToday !== "number") data.borderActionsToday = 0;
 
   return data;
 }
@@ -42,13 +46,16 @@ function createKingdom() {
     gold: 200,
     soldiers: 80,
     morale: 70,
+    borderStability: 60,
     lastLogin: now,
     report: "王国初建，宫廷书记官已开始记录第一日的政务。",
     logs: [],
     granaryActionDay: 1,
     granaryActionsToday: 0,
     tradeFoodDay: 1,
-    tradeFoodUsedToday: false
+    tradeFoodUsedToday: false,
+    borderActionDay: 1,
+    borderActionsToday: 0
   };
 
   localStorage.setItem("moonlitKingdom", JSON.stringify(kingdomData));
@@ -110,6 +117,11 @@ function updateKingdomByOfflineTime(data) {
   if (data.tradeFoodDay !== data.day) {
     data.tradeFoodDay = data.day;
     data.tradeFoodUsedToday = false;
+  }
+
+  if (data.borderActionDay !== data.day) {
+    data.borderActionDay = data.day;
+    data.borderActionsToday = 0;
   }
 
   if (hoursAway <= 24 * 7) {
@@ -189,6 +201,7 @@ function showKingdom(data, updateResult) {
     <p>黄金：${data.gold}</p>
     <p>士兵：${data.soldiers}</p>
     <p>民心：${data.morale}</p>
+    <p>边境安定：${data.borderStability}</p>
 
     <p>天气：月色清冷</p>
 
@@ -199,7 +212,7 @@ function showKingdom(data, updateResult) {
 
     <p><a href="javascript:void(0)" onclick="showUnavailable('王宫事务')">王宫事务</a></p>
     <p><a href="javascript:void(0)" onclick="showGranary()">粮仓</a></p>
-    <p><a href="javascript:void(0)" onclick="showUnavailable('边境')">边境</a></p>
+    <p><a href="javascript:void(0)" onclick="showBorderAffairs()">边境</a></p>
     <p><a href="javascript:void(0)" onclick="showLog()">王国日志</a></p>
   `;
 }
@@ -436,6 +449,162 @@ function buyFoodFromCaravan() {
 
   localStorage.setItem("moonlitKingdom", JSON.stringify(data));
   showGranary();
+}
+
+function showBorderAffairs() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+  const remainingActions = Math.max(0, 3 - data.borderActionsToday);
+  const kingdomSection = document.getElementById("kingdom");
+
+  kingdomSection.innerHTML = `
+    <p>━━━━━━━━━━━━</p>
+    <h2>边境事务</h2>
+    <p>━━━━━━━━━━━━</p>
+
+    <p>边境安定：${data.borderStability}</p>
+    <p>粮食：${data.food}</p>
+    <p>黄金：${data.gold}</p>
+    <p>士兵：${data.soldiers}</p>
+    <p>民心：${data.morale}</p>
+    <p>今日边境事务：${data.borderActionsToday} / 3</p>
+    <p>今日尚可处理：${remainingActions}</p>
+
+    <p>边境回报：</p>
+    <p>${data.report}</p>
+
+    <p>可执行事务：</p>
+
+    <p><a href="javascript:void(0)" onclick="strengthenBorderPatrol()">加强巡防</a></p>
+    <p>效果：粮食减少 20，边境安定上升 4。</p>
+
+    <p><a href="javascript:void(0)" onclick="sendBorderScouts()">派出斥候</a></p>
+    <p>效果：粮食减少 15，士兵减少 1，边境安定上升 3。</p>
+
+    <p><a href="javascript:void(0)" onclick="hireMercenaryCompany()">雇佣佣兵团</a></p>
+    <p>效果：黄金减少 35，士兵增加 8，民心下降 1，边境安定上升 2。</p>
+
+    <p><a href="javascript:void(0)" onclick="comfortBorderFolk()">安抚边民</a></p>
+    <p>效果：粮食减少 25，黄金减少 10，民心上升 3，边境安定上升 2。</p>
+
+    <p><a href="javascript:void(0)" onclick="returnToKingdom()">返回王国</a></p>
+  `;
+}
+
+function canHandleBorderAction(data) {
+  if (data.borderActionDay !== data.day) {
+    data.borderActionDay = data.day;
+    data.borderActionsToday = 0;
+  }
+
+  if (data.borderActionsToday >= 3) {
+    data.report = "边境文书已封存。巡防官建议让驿路安静到明日清晨。";
+    addManualLog(data, "你试图继续处理边境事务，但今日边境文书已封。");
+
+    localStorage.setItem("moonlitKingdom", JSON.stringify(data));
+    showBorderAffairs();
+    return false;
+  }
+
+  data.borderActionsToday += 1;
+  return true;
+}
+
+function strengthenBorderPatrol() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+
+  if (!canHandleBorderAction(data)) {
+    return;
+  }
+
+  if (data.food < 20) {
+    data.report = "巡防队缺少路粮，只能在近处城墙下点灯巡看。";
+    addManualLog(data, "你试图加强巡防，但边路粮袋不足。");
+  } else {
+    data.food = Math.max(0, data.food - 20);
+    data.borderStability = Math.min(100, data.borderStability + 4);
+    data.report = "边境巡防换上新灯油，驿路的脚步声整齐而缓慢。";
+
+    addManualLog(data, "你下令加强巡防。粮食减少 20，边境安定上升 4。");
+  }
+
+  localStorage.setItem("moonlitKingdom", JSON.stringify(data));
+  showBorderAffairs();
+}
+
+function sendBorderScouts() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+
+  if (!canHandleBorderAction(data)) {
+    return;
+  }
+
+  if (data.food < 15 || data.soldiers < 1) {
+    data.report = "斥候小队未能成行。边境官将地图重新卷起，等待补给与人手。";
+    addManualLog(data, "你试图派出斥候，但补给或人手不足。");
+  } else {
+    data.food = Math.max(0, data.food - 15);
+    data.soldiers = Math.max(0, data.soldiers - 1);
+    data.borderStability = Math.min(100, data.borderStability + 3);
+    data.report = "斥候沿旧驿道出发，只带回简短回报：边风平稳，远灯未近。";
+
+    addManualLog(data, "你派出斥候查探驿路。粮食减少 15，士兵减少 1，边境安定上升 3。");
+  }
+
+  localStorage.setItem("moonlitKingdom", JSON.stringify(data));
+  showBorderAffairs();
+}
+
+function hireMercenaryCompany() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+
+  if (!canHandleBorderAction(data)) {
+    return;
+  }
+
+  if (data.gold < 35) {
+    data.report = "国库银印不足，佣兵团在驿馆外等到黄昏后离开。";
+    addManualLog(data, "你试图雇佣佣兵团，但国库不足。");
+  } else {
+    data.gold = Math.max(0, data.gold - 35);
+    data.soldiers = data.soldiers + 8;
+    data.morale = Math.max(0, data.morale - 1);
+    data.borderStability = Math.min(100, data.borderStability + 2);
+    data.report = "一支安静的佣兵团驻入边堡。市井略有疑虑，但驿路多了几盏守夜灯。";
+
+    addManualLog(data, "你雇佣佣兵团驻守边堡。黄金减少 35，士兵增加 8，民心下降 1，边境安定上升 2。");
+  }
+
+  localStorage.setItem("moonlitKingdom", JSON.stringify(data));
+  showBorderAffairs();
+}
+
+function comfortBorderFolk() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+
+  if (!canHandleBorderAction(data)) {
+    return;
+  }
+
+  if (data.food < 25 || data.gold < 10) {
+    data.report = "边民安抚令暂缓。书记官记下短缺的粮袋与银印，等待下一次拨付。";
+    addManualLog(data, "你试图安抚边民，但粮食或黄金不足。");
+  } else {
+    data.food = Math.max(0, data.food - 25);
+    data.gold = Math.max(0, data.gold - 10);
+    data.morale = Math.min(100, data.morale + 3);
+    data.borderStability = Math.min(100, data.borderStability + 2);
+    data.report = "边村收到粮袋与修桥银。夜里炊烟低低升起，驿路也显得安稳些。";
+
+    addManualLog(data, "你拨付粮食与黄金安抚边民。粮食减少 25，黄金减少 10，民心上升 3，边境安定上升 2。");
+  }
+
+  localStorage.setItem("moonlitKingdom", JSON.stringify(data));
+  showBorderAffairs();
 }
 
 function addManualLog(data, summary) {
