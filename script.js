@@ -23,6 +23,9 @@ function repairKingdomData(data) {
   if (typeof data.borderActionDay !== "number") data.borderActionDay = data.day;
   if (typeof data.borderActionsToday !== "number") data.borderActionsToday = 0;
 
+  if (typeof data.palaceActionDay !== "number") data.palaceActionDay = data.day;
+  if (typeof data.palaceActionsToday !== "number") data.palaceActionsToday = 0;
+
   return data;
 }
 
@@ -55,7 +58,9 @@ function createKingdom() {
     tradeFoodDay: 1,
     tradeFoodUsedToday: false,
     borderActionDay: 1,
-    borderActionsToday: 0
+    borderActionsToday: 0,
+    palaceActionDay: 1,
+    palaceActionsToday: 0
   };
 
   localStorage.setItem("moonlitKingdom", JSON.stringify(kingdomData));
@@ -122,6 +127,11 @@ function updateKingdomByOfflineTime(data) {
   if (data.borderActionDay !== data.day) {
     data.borderActionDay = data.day;
     data.borderActionsToday = 0;
+  }
+
+  if (data.palaceActionDay !== data.day) {
+    data.palaceActionDay = data.day;
+    data.palaceActionsToday = 0;
   }
 
   if (hoursAway <= 24 * 7) {
@@ -210,7 +220,7 @@ function showKingdom(data, updateResult) {
     <p>王国报告：</p>
     <p>${data.report}</p>
 
-    <p><a href="javascript:void(0)" onclick="showUnavailable('王宫事务')">王宫事务</a></p>
+    <p><a href="javascript:void(0)" onclick="showPalaceAffairs()">王宫事务</a></p>
     <p><a href="javascript:void(0)" onclick="showGranary()">粮仓</a></p>
     <p><a href="javascript:void(0)" onclick="showBorderAffairs()">边境</a></p>
     <p><a href="javascript:void(0)" onclick="showLog()">王国日志</a></p>
@@ -256,6 +266,110 @@ function showUnavailable(placeName) {
 
     <p><a href="javascript:void(0)" onclick="returnToKingdom()">返回王国</a></p>
   `;
+}
+
+function showPalaceAffairs() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+  const remainingActions = Math.max(0, 2 - data.palaceActionsToday);
+  const kingdomSection = document.getElementById("kingdom");
+
+  kingdomSection.innerHTML = `
+    <p>━━━━━━━━━━━━</p>
+    <h2>王宫事务</h2>
+    <p>━━━━━━━━━━━━</p>
+
+    <p>王座厅的烛火仍亮着。</p>
+    <p>宫廷书记官在长案旁整理奏章、税册与各地来报。王宫并不空，只是在等待下一道王令。</p>
+
+    <p>黄金：${data.gold}</p>
+    <p>民心：${data.morale}</p>
+    <p>今日王宫事务：${data.palaceActionsToday} / 2</p>
+    <p>今日尚可处理：${remainingActions}</p>
+
+    <p>王宫近况：</p>
+    <p>${data.report}</p>
+
+    <p>可执行事务：</p>
+
+    <p><a href="javascript:void(0)" onclick="reviewPalacePetitions()">查看今日奏章</a></p>
+    <p>效果：整理一条今日政务近况。</p>
+
+    <p><a href="javascript:void(0)" onclick="comfortCapital()">安抚王都</a></p>
+    <p>效果：黄金减少 20，民心上升 2。</p>
+
+    <p><a href="javascript:void(0)" onclick="returnToKingdom()">返回王国</a></p>
+  `;
+}
+
+function canHandlePalaceAction(data) {
+  if (data.palaceActionDay !== data.day) {
+    data.palaceActionDay = data.day;
+    data.palaceActionsToday = 0;
+  }
+
+  if (data.palaceActionsToday >= 2) {
+    data.report = "书记官轻轻合上今日奏章。王座厅仍有灯火，但更多王令需等到明日。";
+    addManualLog(data, "你试图继续处理王宫事务，但今日奏章已暂时封存。");
+
+    localStorage.setItem("moonlitKingdom", JSON.stringify(data));
+    showPalaceAffairs();
+    return false;
+  }
+
+  data.palaceActionsToday += 1;
+  return true;
+}
+
+function reviewPalacePetitions() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+
+  if (!canHandlePalaceAction(data)) {
+    return;
+  }
+
+  const reports = [
+    "书记官呈上今日奏章：税册无大错，西市井栏需修，几份边村来报已归入明日案卷。",
+    "今日奏章多是细碎政务。宫灯照着墨迹未干的账页，王都在安静地维持秩序。",
+    "书记官核对粮价、桥税与驿站回条。没有急报，只听见纸页在王座厅里轻轻翻动。",
+    "内廷送来短报：库房钥印已复核，旧案卷重新扎线，几处街灯将在入夜前添油。"
+  ];
+  const index = Math.floor(Math.random() * reports.length);
+
+  data.report = reports[index];
+  addManualLog(data, "你查看今日奏章。书记官整理了税册、案卷与各地来报，王宫灯火仍亮。");
+
+  localStorage.setItem("moonlitKingdom", JSON.stringify(data));
+  showPalaceAffairs();
+}
+
+function comfortCapital() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+
+  if (data.palaceActionDay !== data.day) {
+    data.palaceActionDay = data.day;
+    data.palaceActionsToday = 0;
+  }
+
+  if (data.gold < 20) {
+    data.report = "国库银印不足。书记官将安抚王都的文书放回案上，待库房稍丰时再议。";
+    addManualLog(data, "你试图安抚王都，但国库不足。");
+  } else {
+    if (!canHandlePalaceAction(data)) {
+      return;
+    }
+
+    data.gold = Math.max(0, data.gold - 20);
+    data.morale = Math.min(100, data.morale + 2);
+    data.report = "王都收到一笔安抚拨款。街灯添了油，市集的议论声也温和了一些。";
+
+    addManualLog(data, "你拨款安抚王都。黄金减少 20，民心上升 2。");
+  }
+
+  localStorage.setItem("moonlitKingdom", JSON.stringify(data));
+  showPalaceAffairs();
 }
 
 function showLog() {
