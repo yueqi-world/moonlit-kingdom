@@ -26,6 +26,9 @@ function repairKingdomData(data) {
   if (typeof data.palaceActionDay !== "number") data.palaceActionDay = data.day;
   if (typeof data.palaceActionsToday !== "number") data.palaceActionsToday = 0;
 
+  if (typeof data.cityReportDay !== "number") data.cityReportDay = data.day;
+  if (typeof data.cityReportUsedToday !== "boolean") data.cityReportUsedToday = false;
+
   return data;
 }
 
@@ -271,7 +274,9 @@ function showUnavailable(placeName) {
 function showPalaceAffairs() {
   const saved = localStorage.getItem("moonlitKingdom");
   const data = repairKingdomData(JSON.parse(saved));
+  refreshCityReportDay(data);
   const remainingActions = Math.max(0, 2 - data.palaceActionsToday);
+  const cityReportStatus = data.cityReportUsedToday ? "已查看" : "未查看";
   const kingdomSection = document.getElementById("kingdom");
 
   kingdomSection.innerHTML = `
@@ -286,11 +291,15 @@ function showPalaceAffairs() {
     <p>民心：${data.morale}</p>
     <p>今日王宫事务：${data.palaceActionsToday} / 2</p>
     <p>今日尚可处理：${remainingActions}</p>
+    <p>今日来报：${cityReportStatus}</p>
 
     <p>王宫近况：</p>
     <p>${data.report}</p>
 
     <p>可执行事务：</p>
+
+    <p><a href="javascript:void(0)" onclick="viewTodayCityReport()">查看今日来报</a></p>
+    <p>效果：听取一条今日短报。</p>
 
     <p><a href="javascript:void(0)" onclick="reviewPalacePetitions()">查看今日奏章</a></p>
     <p>效果：整理一条今日政务近况。</p>
@@ -300,6 +309,66 @@ function showPalaceAffairs() {
 
     <p><a href="javascript:void(0)" onclick="returnToKingdom()">返回王国</a></p>
   `;
+}
+
+function refreshCityReportDay(data) {
+  if (data.cityReportDay !== data.day) {
+    data.cityReportDay = data.day;
+    data.cityReportUsedToday = false;
+  }
+}
+
+function generateCityReport(data) {
+  if (data.food < 180) {
+    return "今日来报：粮仓外排起短队，粮价略涨，人群比往常安静。";
+  }
+
+  if (data.morale < 50) {
+    return "今日来报：街市谈笑声少了些，宫门外有人静静等候回音。";
+  }
+
+  if (data.gold < 80) {
+    return "今日来报：财政官翻检空账册，市集税册被重新核对。";
+  }
+
+  if (data.borderStability < 45) {
+    return "今日来报：边村信使送来短笺，驿站听见几句商路传闻。";
+  }
+
+  const reports = [
+    "今日来报：喷泉旁有孩子追着水声跑过，巡城兵在远处换岗。",
+    "今日来报：夜市灯火按时点起，税吏在摊棚间低声核账。",
+    "今日来报：王都街角传来修井声，宫门前的石阶被扫得很干净。"
+  ];
+  const index = Math.floor(Math.random() * reports.length);
+  return reports[index];
+}
+
+function viewTodayCityReport() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+  refreshCityReportDay(data);
+
+  if (data.cityReportUsedToday) {
+    showPalaceAffairsMessage(data, "今日来报已归入案卷。书记官建议明日再阅。");
+    return;
+  }
+
+  const cityReport = generateCityReport(data);
+  data.cityReportUsedToday = true;
+  addManualLog(data, cityReport);
+
+  localStorage.setItem("moonlitKingdom", JSON.stringify(data));
+  showPalaceAffairsMessage(data, cityReport);
+}
+
+function showPalaceAffairsMessage(data, message) {
+  showPalaceAffairs();
+  const kingdomSection = document.getElementById("kingdom");
+  kingdomSection.innerHTML = kingdomSection.innerHTML.replace(
+    "<p>可执行事务：</p>",
+    "<p>今日短报：</p><p>" + message + "</p><p>可执行事务：</p>"
+  );
 }
 
 function canHandlePalaceAction(data) {
