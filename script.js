@@ -28,6 +28,7 @@ function repairKingdomData(data) {
 
   if (typeof data.cityReportDay !== "number") data.cityReportDay = data.day;
   if (typeof data.cityReportUsedToday !== "boolean") data.cityReportUsedToday = false;
+  if (typeof data.cityReportToday !== "string") data.cityReportToday = "";
 
   return data;
 }
@@ -315,30 +316,31 @@ function refreshCityReportDay(data) {
   if (data.cityReportDay !== data.day) {
     data.cityReportDay = data.day;
     data.cityReportUsedToday = false;
+    data.cityReportToday = "";
   }
 }
 
 function generateCityReport(data) {
   if (data.food < 180) {
-    return "今日来报：粮仓外排起短队，粮价略涨，人群比往常安静。";
+    return "来报来源：粮仓外值守小吏\n\n粮仓外排起短队，粮价略涨，等候的人很少说话。\n\n事务官建议：明日核对粮仓门前秩序与市集粮价。";
   }
 
   if (data.morale < 50) {
-    return "今日来报：街市谈笑声少了些，宫门外有人静静等候回音。";
+    return "来报来源：王都市集巡吏\n\n街市比往常安静，低声议论变少，宫门外有人等候回音。\n\n事务官建议：留意市井情绪，暂缓过重的王令。";
   }
 
   if (data.gold < 80) {
-    return "今日来报：财政官翻检空账册，市集税册被重新核对。";
+    return "来报来源：财政官副手\n\n空账册被重新翻开，市集税册与商队契约排在长案上。\n\n事务官建议：近日开支宜从简，先核清小额税项。";
   }
 
   if (data.borderStability < 45) {
-    return "今日来报：边村信使送来短笺，驿站听见几句商路传闻。";
+    return "来报来源：边村信使\n\n驿站送来短报，商路上有零散传闻，边村夜灯比往日早些熄灭。\n\n事务官建议：继续收拢驿站来信，不宜仓促下令。";
   }
 
   const reports = [
-    "今日来报：喷泉旁有孩子追着水声跑过，巡城兵在远处换岗。",
-    "今日来报：夜市灯火按时点起，税吏在摊棚间低声核账。",
-    "今日来报：王都街角传来修井声，宫门前的石阶被扫得很干净。"
+    "来报来源：王都巡城兵\n\n喷泉旁有孩子追着水声跑过，夜里换岗的脚步很稳。\n\n事务官建议：维持街灯与水渠巡查即可。",
+    "来报来源：夜市税吏\n\n夜市灯火按时点起，摊棚间有人低声核账，街角仍有热茶香。\n\n事务官建议：照旧登记夜市税册，不必加派人手。",
+    "来报来源：宫门杂役\n\n宫门前石阶清扫干净，街角传来修井声，巡城兵慢慢经过。\n\n事务官建议：将修井用料记入明日小账。"
   ];
   const index = Math.floor(Math.random() * reports.length);
   return reports[index];
@@ -350,12 +352,14 @@ function viewTodayCityReport() {
   refreshCityReportDay(data);
 
   if (data.cityReportUsedToday) {
-    showPalaceAffairsMessage(data, "今日来报已归入案卷。书记官建议明日再阅。");
+    const archivedReport = data.cityReportToday || "今日来报已归入案卷。书记官建议明日再阅。";
+    showPalaceAffairsMessage(data, archivedReport);
     return;
   }
 
   const cityReport = generateCityReport(data);
   data.cityReportUsedToday = true;
+  data.cityReportToday = cityReport;
   addManualLog(data, cityReport);
 
   localStorage.setItem("moonlitKingdom", JSON.stringify(data));
@@ -365,9 +369,10 @@ function viewTodayCityReport() {
 function showPalaceAffairsMessage(data, message) {
   showPalaceAffairs();
   const kingdomSection = document.getElementById("kingdom");
+  const formattedMessage = message.replace(/\n/g, "<br>");
   kingdomSection.innerHTML = kingdomSection.innerHTML.replace(
     "<p>可执行事务：</p>",
-    "<p>今日短报：</p><p>" + message + "</p><p>可执行事务：</p>"
+    "<p>今日短报：</p><p>" + formattedMessage + "</p><p>可执行事务：</p>"
   );
 }
 
