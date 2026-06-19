@@ -228,6 +228,7 @@ function showKingdom(data, updateResult) {
     <p><a href="javascript:void(0)" onclick="showGranary()">粮仓</a></p>
     <p><a href="javascript:void(0)" onclick="showBorderAffairs()">边境</a></p>
     <p><a href="javascript:void(0)" onclick="showLog()">王国日志</a></p>
+    <p><a href="javascript:void(0)" onclick="showKingdomBrief()">王国简报</a></p>
   `;
 }
 
@@ -267,6 +268,91 @@ function showUnavailable(placeName) {
 
     <p>此处尚未开放。</p>
     <p>宫廷书记官仍在整理相关文书。</p>
+
+    <p><a href="javascript:void(0)" onclick="returnToKingdom()">返回王国</a></p>
+  `;
+}
+
+function generateKingdomBriefSummary(data) {
+  if (data.gold < 50 && data.borderStability >= 60) {
+    return "国库已经见底，但边境居然还守得住。书记官看了账册，又默默把灯点亮了一盏。";
+  }
+
+  if (data.food < 180 && data.morale >= 55) {
+    return "粮仓有点紧，王都倒还安静。百姓没有吵，只是排队时比昨天更少说话。";
+  }
+
+  if (data.morale < 50) {
+    return "民心不算高，但夜市的灯还亮着。这个王国暂时还没有放弃你。";
+  }
+
+  if (data.borderStability < 45) {
+    return "边境风声很多，王宫里却还在照常整理奏章。看来这位统治者很会假装镇定。";
+  }
+
+  if (data.gold < 80 && data.food < 260) {
+    return "黄金少得可怜，粮食也不宽裕。但士兵还在巡城，孩子还在喷泉边跑。";
+  }
+
+  if (data.food > 450 && data.morale >= 70) {
+    return "粮仓还算充实，街市也肯说话。王座厅没有太多掌声，但灯火稳稳亮着。";
+  }
+
+  return "王国没有大喜，也没有大乱。奏章照常堆起，巡城兵照常换岗，日子像一卷慢慢展开的账册。";
+}
+
+function renderBriefCityReport(data) {
+  if (data.cityReportToday) {
+    return data.cityReportToday.replace(/\n/g, "<br>");
+  }
+
+  return "今日来报尚未归档。王宫案卷旁还空着一页。";
+}
+
+function renderBriefLogs(data) {
+  const logs = Array.isArray(data.logs) ? data.logs.slice(0, 3) : [];
+
+  if (logs.length === 0) {
+    return "<p>近日记录尚空。书记官的墨还未落下。</p>";
+  }
+
+  return logs.map(function(item) {
+    return "<p>第 " + item.day + " 日：" + item.summary + "</p>";
+  }).join("");
+}
+
+function showKingdomBrief() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+  const kingdomSection = document.getElementById("kingdom");
+
+  kingdomSection.innerHTML = `
+    <p>Moonlit Kingdom</p>
+    <p>━━━━━━━━━━━━</p>
+    <h2>${data.name}王国</h2>
+    <p>第 ${data.day} 日</p>
+    <p>统治者：${data.identity}</p>
+    <p>━━━━━━━━━━━━</p>
+
+    <p>人口：${data.population}</p>
+    <p>粮食：${data.food}</p>
+    <p>黄金：${data.gold}</p>
+    <p>士兵：${data.soldiers}</p>
+    <p>民心：${data.morale}</p>
+    <p>边境安定：${data.borderStability}</p>
+
+    <p>王国状态：</p>
+    <p>${generateKingdomBriefSummary(data)}</p>
+
+    <p>今日来报：</p>
+    <p>${renderBriefCityReport(data)}</p>
+
+    <p>近日记录：</p>
+    ${renderBriefLogs(data)}
+
+    <p>━━━━━━━━━━━━</p>
+    <p>一个仍在运作的文字王国</p>
+    <p>你可以复制这份简报，问你的 AI：这是一位怎样的统治者？</p>
 
     <p><a href="javascript:void(0)" onclick="returnToKingdom()">返回王国</a></p>
   `;
