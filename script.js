@@ -26,6 +26,9 @@ function repairKingdomData(data) {
   if (typeof data.palaceActionDay !== "number") data.palaceActionDay = data.day;
   if (typeof data.palaceActionsToday !== "number") data.palaceActionsToday = 0;
 
+  if (typeof data.taxLedgerDay !== "number") data.taxLedgerDay = data.day;
+  if (typeof data.taxLedgerUsedToday !== "boolean") data.taxLedgerUsedToday = false;
+
   if (typeof data.cityReportDay !== "number") data.cityReportDay = data.day;
   if (typeof data.cityReportUsedToday !== "boolean") data.cityReportUsedToday = false;
   if (typeof data.cityReportToday !== "string") data.cityReportToday = "";
@@ -213,7 +216,7 @@ function showKingdom(data, updateResult) {
     <p>人口：${data.population}</p>
     <p>粮食：${data.food}</p>
     <p>黄金：${data.gold}</p>
-    <p>士兵：${data.soldiers}</p>
+    <p>驻军：${data.soldiers}</p>
     <p>民心：${data.morale}</p>
     <p>边境安定：${data.borderStability}</p>
 
@@ -291,7 +294,7 @@ function generateKingdomBriefSummary(data) {
   }
 
   if (data.gold < 80 && data.food < 260) {
-    return "黄金少得可怜，粮食也不宽裕。但士兵还在巡城，孩子还在喷泉边跑。";
+    return "黄金少得可怜，粮食也不宽裕。但驻军还在巡城，孩子还在喷泉边跑。";
   }
 
   if (data.food > 450 && data.morale >= 70) {
@@ -337,7 +340,7 @@ function showKingdomBrief() {
     <p>人口：${data.population}</p>
     <p>粮食：${data.food}</p>
     <p>黄金：${data.gold}</p>
-    <p>士兵：${data.soldiers}</p>
+    <p>驻军：${data.soldiers}</p>
     <p>民心：${data.morale}</p>
     <p>边境安定：${data.borderStability}</p>
 
@@ -362,8 +365,10 @@ function showPalaceAffairs() {
   const saved = localStorage.getItem("moonlitKingdom");
   const data = repairKingdomData(JSON.parse(saved));
   refreshCityReportDay(data);
+  refreshTaxLedgerDay(data);
   const remainingActions = Math.max(0, 2 - data.palaceActionsToday);
   const cityReportStatus = data.cityReportUsedToday ? "已查看" : "未查看";
+  const taxLedgerStatus = data.taxLedgerUsedToday ? "已整理" : "未整理";
   const kingdomSection = document.getElementById("kingdom");
 
   kingdomSection.innerHTML = `
@@ -379,6 +384,7 @@ function showPalaceAffairs() {
     <p>今日王宫事务：${data.palaceActionsToday} / 2</p>
     <p>今日尚可处理：${remainingActions}</p>
     <p>今日来报：${cityReportStatus}</p>
+    <p>今日税册：${taxLedgerStatus}</p>
 
     <p>王宫近况：</p>
     <p>${data.report}</p>
@@ -391,11 +397,51 @@ function showPalaceAffairs() {
     <p><a href="javascript:void(0)" onclick="reviewPalacePetitions()">查看今日奏章</a></p>
     <p>效果：整理一条今日政务近况。</p>
 
+    <p><a href="javascript:void(0)" onclick="organizeTaxLedger()">整理税册</a></p>
+    <p>效果：黄金增加 25，民心下降 1。每日限一次。</p>
+
     <p><a href="javascript:void(0)" onclick="comfortCapital()">安抚王都</a></p>
     <p>效果：黄金减少 20，民心上升 2。</p>
 
     <p><a href="javascript:void(0)" onclick="returnToKingdom()">返回王国</a></p>
   `;
+}
+
+function refreshTaxLedgerDay(data) {
+  if (data.taxLedgerDay !== data.day) {
+    data.taxLedgerDay = data.day;
+    data.taxLedgerUsedToday = false;
+  }
+}
+
+function organizeTaxLedger() {
+  const saved = localStorage.getItem("moonlitKingdom");
+  const data = repairKingdomData(JSON.parse(saved));
+  refreshTaxLedgerDay(data);
+
+  if (data.taxLedgerUsedToday) {
+    showPalaceAffairsNotice("今日税册已经整理完毕。财政官把账册合上，建议明日再查。");
+    return;
+  }
+
+  data.gold = data.gold + 25;
+  data.morale = Math.max(0, data.morale - 1);
+  data.taxLedgerUsedToday = true;
+  data.report = "财政官从旧税册中核出一笔迟交的市集税。国库稍有回补，王都商贩低声抱怨。";
+
+  addManualLog(data, "你整理税册。黄金增加 25，民心下降 1。财政官从旧税册中核出一笔迟交的市集税。");
+
+  localStorage.setItem("moonlitKingdom", JSON.stringify(data));
+  showPalaceAffairsNotice(data.report);
+}
+
+function showPalaceAffairsNotice(message) {
+  showPalaceAffairs();
+  const kingdomSection = document.getElementById("kingdom");
+  kingdomSection.innerHTML = kingdomSection.innerHTML.replace(
+    "<p>可执行事务：</p>",
+    "<p>王宫回报：</p><p>" + message + "</p><p>可执行事务：</p>"
+  );
 }
 
 function refreshCityReportDay(data) {
@@ -739,7 +785,7 @@ function showBorderAffairs() {
     <p>边境安定：${data.borderStability}</p>
     <p>粮食：${data.food}</p>
     <p>黄金：${data.gold}</p>
-    <p>士兵：${data.soldiers}</p>
+    <p>驻军：${data.soldiers}</p>
     <p>民心：${data.morale}</p>
     <p>今日边境事务：${data.borderActionsToday} / 3</p>
     <p>今日尚可处理：${remainingActions}</p>
@@ -753,10 +799,10 @@ function showBorderAffairs() {
     <p>效果：粮食减少 20，边境安定上升 4。</p>
 
     <p><a href="javascript:void(0)" onclick="sendBorderScouts()">派出斥候</a></p>
-    <p>效果：粮食减少 15，士兵减少 1，边境安定上升 3。</p>
+    <p>效果：粮食减少 15，驻军减少 1，边境安定上升 3。</p>
 
     <p><a href="javascript:void(0)" onclick="hireMercenaryCompany()">雇佣佣兵团</a></p>
-    <p>效果：黄金减少 35，士兵增加 8，民心下降 1，边境安定上升 2。</p>
+    <p>效果：黄金减少 35，驻军增加 8，民心下降 1，边境安定上升 2。</p>
 
     <p><a href="javascript:void(0)" onclick="comfortBorderFolk()">安抚边民</a></p>
     <p>效果：粮食减少 25，黄金减少 10，民心上升 3，边境安定上升 2。</p>
@@ -824,7 +870,7 @@ function sendBorderScouts() {
     data.borderStability = Math.min(100, data.borderStability + 3);
     data.report = "斥候沿旧驿道出发，只带回简短回报：边风平稳，远灯未近。";
 
-    addManualLog(data, "你派出斥候查探驿路。粮食减少 15，士兵减少 1，边境安定上升 3。");
+    addManualLog(data, "你派出斥候查探驿路。粮食减少 15，驻军减少 1，边境安定上升 3。");
   }
 
   localStorage.setItem("moonlitKingdom", JSON.stringify(data));
@@ -849,7 +895,7 @@ function hireMercenaryCompany() {
     data.borderStability = Math.min(100, data.borderStability + 2);
     data.report = "一支安静的佣兵团驻入边堡。市井略有疑虑，但驿路多了几盏守夜灯。";
 
-    addManualLog(data, "你雇佣佣兵团驻守边堡。黄金减少 35，士兵增加 8，民心下降 1，边境安定上升 2。");
+    addManualLog(data, "你雇佣佣兵团驻守边堡。黄金减少 35，驻军增加 8，民心下降 1，边境安定上升 2。");
   }
 
   localStorage.setItem("moonlitKingdom", JSON.stringify(data));
